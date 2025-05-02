@@ -1,0 +1,79 @@
+# === General ===
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+.env/
+venv/
+.venv/
+*.sqlite3
+
+# === C/C++ (Firmware) ===
+*.o
+*.obj
+*.elf
+*.hex
+*.bin
+*.map
+*.out
+*.a
+*.d
+*.dSYM/
+build/
+dist/
+*.exe
+
+# === 3D CAD / Modeling ===
+*.f3d         # Fusion 360 archive
+*.FCStd       # FreeCAD project files
+*.step
+*.stp
+*.iges
+*.igs
+*.3mf
+*.gcode
+*.bak*
+
+# === Editor and IDE settings ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*.sublime-workspace
+*.sublime-project
+
+# === Git ===
+*.orig
+*.patch
+*.rej
+
+# === Tests ===
+*.csv
+*.json
+*.dat
+test_output/
+
+# === Node/npm (just in case) ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# === Miscellaneous ===
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.pdf  # (Optional: exclude if PDFs are generated artifacts)
+

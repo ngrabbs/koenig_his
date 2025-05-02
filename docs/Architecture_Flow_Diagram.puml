@@ -1,0 +1,65 @@
+@startuml
+title Koenig Hyperspectral Imaging Payload Communication - Architecture
+!define AWSPUML https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v14.0/LATEST/AWSPUML
+skinparam componentStyle rectangle
+skinparam wrapWidth 200
+skinparam defaultFontSize 12
+
+' High-level groups
+package "Ground Segment" {
+  actor Operator as OP
+  node "C2 Server \n(Flask)" as C2
+  node "EPC / Core \n(srsEPC)" as EPC
+  node "eNodeB (srsENB)" as ENB
+}
+
+package "Radio Link (LTE Band)" {
+  cloud LTE
+}
+
+package "Flight Segment – Balloon / CubeSat" {
+  node "Flight Controller \n(ESP32 + SIM7600)" as FC {
+    component "Capture GPIO" as CAP
+    interface UART0
+    interface UART1
+    interface UART2
+  }
+
+  frame "Hyperspectral Payload" {
+    node "Pi 0  – 760 nm" as PI760 {
+      component "HQ Camera\nFilter 760 nm" as CAM760
+    }
+    node "Pi 1  – 770 nm" as PI770 {
+      component "HQ Camera\nFilter 770 nm" as CAM770
+    }
+    node "Pi 2  – 780 nm" as PI780 {
+      component "HQ Camera\nFilter 780 nm" as CAM780
+    }
+  }
+
+  database "µSD / Flash" as SD
+}
+
+' Connections
+OP --> C2 : HTTPS (Browser/API)
+C2 --> EPC : REST (SIM provisioning)
+EPC --> ENB : S1 (GTP-U)
+ENB --> LTE : LTE air interface
+LTE --> FC : Cellular link (uplink & downlink)
+
+FC --> CAP : Trigger GPIO
+CAP --> PI760 : 3.3 V signal
+CAP --> PI770
+CAP --> PI780
+
+PI760 ..> FC : UART @115 k   <<UART2>>
+PI770 ..> FC : UART   <<SoftUART>>
+PI780 ..> FC : UART   <<SoftUART>>
+
+FC --> SD : store JPEG chunks
+
+' ground returns
+FC --> LTE : telemetry / image upload
+LTE --> C2 : HTTP POST (/telemetry,\n/pi_meta,\n/upload_image)
+
+@enduml

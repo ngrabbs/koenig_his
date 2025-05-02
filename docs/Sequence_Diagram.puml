@@ -1,0 +1,55 @@
+@startuml
+' CubeSat / Balloon – End‑to‑End Sequence Flow
+' Shows a single command cycle, capture trigger, image transfer, and telemetry
+
+title Koenig Hyperspectral Imaging Payload Communication – Sequence Diagram
+
+actor Operator as OP
+participant "C2 Server" as C2
+participant "EPC / Core" as EPC
+participant "eNodeB" as ENB
+participant "Flight Controller\n(ESP32 + SIM7600)" as FC
+participant "Pi‑Cam 760" as P760
+participant "Pi‑Cam 770" as P770
+participant "Pi‑Cam 780" as P780
+
+== Command Injection ==
+OP -> C2 : POST /add_command\n{ id:42, action:"sleep", value:10 }
+C2 -> C2 : Queue command 42
+
+== Command Poll ==
+FC -> C2 : GET /commands
+C2 --> FC : JSON [{id:42,action:sleep, ...}]
+FC -> C2 : POST /acknowledge {acknowledged:[42]}
+C2 --> C2 : Remove 42 from queue
+FC -> FC : Process sleep(10s)
+... (wake up) ...
+
+== Capture Trigger Cycle ==
+FC -> FC : GPIO HIGH 250 ms (Capture)
+FC -> P760 ++ : trigger
+FC -> P770 ++ : trigger
+FC -> P780 ++ : trigger
+
+== Metadata & Histogram Upload ==
+P760 -> FC : meta+hist JSON \n(type:capture,filter_id:760,...)
+P770 -> FC : meta+hist JSON
+P780 -> FC : meta+hist JSON
+FC -> C2  : POST /pi_meta (three times)
+
+== Conditional JPEG Transfer (example 770 only) ==
+FC -> P770 : "SEND_IMG"
+P770 -> FC : [chunked JPEG stream]
+FC -> C2  : POST /upload_image (binary)
+
+== Periodic Telemetry ==
+loop every telemetryInterval
+    FC -> C2 : POST /telemetry { batt,rssi,lat,lon }
+end
+
+== LTE Attach at Boot ==
+FC -> ENB : RRC Attach Req
+ENB -> EPC : S1 Attach
+EPC --> ENB : Attach Accept
+ENB --> FC  : Attach Accept
+@enduml
