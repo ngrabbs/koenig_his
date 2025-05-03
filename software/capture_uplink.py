@@ -4,13 +4,17 @@ Pi-Zero-2W hyperspectral node  ⟨760/770/780 nm⟩
 Captures on GPIO-17 trigger, sends metadata & histogram over /dev/serial0.
 """
 
-import os, time, json, struct, datetime, threading, sys
+import os, subprocess, shlex, argparse, time, json, struct, datetime, threading, sys
 from gpiozero          import Button
 from picamera2         import Picamera2
 from PIL               import Image      # sudo apt install python3-pillow
 import numpy           as np
 import serial
 
+parser = argparse.ArgumentParser()
+parser.add_argument("--dev", action="store_true",
+                    help="Enable dev mode: scp image to ESP32 host")
+args, _ = parser.parse_known_args()
 # ────────── CONFIG ──────────────────────────────────────────────────────────
 TRIGGER_PIN      = 17
 FILTER_ID        = "760"                 # change on each Pi
@@ -20,6 +24,12 @@ BAUD             = 115200
 CHUNK            = 1024                  # bytes per payload block
 ACK_TIMEOUT      = 10                    # s
 
+# ────────── DEV CONFIG ──────────────────────────────────────────────────────
+DEV_MODE   = args.dev or os.getenv("DEV_SCP") == "1"
+ESP_HOST   = "192.168.4.1"          # mDNS or IP of flight‑controller
+ESP_PATH   = "~/images"             # remote dir
+ESP_USER   = "pi"                   # userid
+SCP_CMD    = f"scp {{src}} {ESP_USER}@{ESP_HOST}:{ESP_PATH}/"
 # ────────── SERIAL ──────────────────────────────────────────────────────────
 ser = serial.Serial(SERIAL_DEV, BAUD, timeout=1)
 
@@ -45,6 +55,15 @@ def stream_file(path):
             ser.write(header + chunk + bytes([chk]))
     ser.write(b"\x00\x00")                # len==0 marks EOF
 
+# ────────── SCP DEV MODE ────────────────────────────────────────────────────
+# ensure we don’t block capture thread
+def scp_async(local_path):
+    if not DEV_MODE:
+        return
+    cmd = SCP_CMD.format(src=shlex.quote(local_path))
+    subprocess.Popen(cmd, shell=True,
+                     stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
 # ────────── CAMERA ──────────────────────────────────────────────────────────
 picam2  = Picamera2()
 controls = dict(ExposureTime=500, AnalogueGain=1.0,
@@ -62,6 +81,8 @@ def capture_and_send():
 
     print(f"[{FILTER_ID}] Trigger → {fname}")
     picam2.capture_file(fpath)
+    if DEV_MODE:
+        scp_async(fpath)            # << uploads in background
 
     # --- histogram (monochrome) -------------------------------------------
     img     = Image.open(fpath).convert("L")          # 8-bit grey
