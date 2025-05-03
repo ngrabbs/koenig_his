@@ -1,0 +1,4 @@
+curl -X POST http://localhost:8080/add_command -H "Content-Type: application/json" -d '{"action": "capture_image"}'
+curl -X POST http://localhost:8080/add_command -H "Content-Type: application/json" -d '{"action": "sleep","value":10}'
+curl -X POST http://localhost:8080/add_command -H "Content-Type: application/json" -d '{"action": "set_interval","value":10000}'
+curl -X POST http://localhost:8080/add_command -H "Content-Type: application/json" -d '{"action": "take_gps_snapshot"}'
