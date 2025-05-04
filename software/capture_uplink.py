@@ -85,8 +85,20 @@ def capture_and_send():
         scp_async(fpath)            # << uploads in background
 
     # --- histogram (monochrome) -------------------------------------------
+    # .convert("L") throws away all color information, this makes the image
+    # luminance only.  All three channels are collapsed using:
+    # ITU-Rec-601 weighting
     img     = Image.open(fpath).convert("L")          # 8-bit grey
     hist    = img.histogram()                        # 256 ints
+
+    # histogram for .convert("RGB")
+    # three channels split
+    img     = Image.open(fpath).convert("RGB")
+    arr = np.array(img)
+    r, g, b = arr[:,:,0], arr[:,:,1], arr[:,:,2]
+    hist_r  = np.bincount(r.flatten(), minlength=256).tolist()
+    hist_g  = np.bincount(g.flatten(), minlength=256).tolist()
+    hist_b  = np.bincount(b.flatten(), minlength=256).tolist()
 
     meta = {
         "type"     : "capture",
@@ -95,8 +107,21 @@ def capture_and_send():
         "fname"    : fname,
         "w"        : img.width,
         "h"        : img.height,
-        "hist"     : hist
+        "hist" : {
+            "luminance" : hist,          # the old grey histogram
+            "r"         : hist_r,
+            "g"         : hist_g,
+            "b"         : hist_b
+        }
     }
+    if DEV_MODE:
+        meta_path = os.path.splitext(fpath)[0] + ".json"
+        # 1. write JSON metadata to disk
+        with open(meta_path, "w") as f:
+            json.dump(meta, f, indent=2)
+            # 2. scp metadata to webserver
+            scp_async(meta_path)
+
     send_json(meta)                                  # step #2 & #3
     print("  meta+histogram sent, waiting for SEND_IMG…")
 
