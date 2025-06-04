@@ -1,0 +1,13 @@
+[Unit]
+Description=Image Dashboard Flask Server
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/pi/image_dashboard/app.py
+WorkingDirectory=/home/pi/image_dashboard
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target
+

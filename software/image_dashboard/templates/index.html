@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Image Dashboard</title>
+</head>
+<body>
+  <h1>Image Dashboard</h1>
+
+  <form action="/clear" method="post" onsubmit="return confirm('Clear all images?')">
+    <button type="submit">🧹 Clear Images</button>
+  </form>
+
+  <form action="/shutdown" method="post" onsubmit="return confirm('Shutdown all remote Pis?')">
+    <button type="submit">⏻ Shutdown Remote Pis</button>
+  </form>
+
+  <form action="/capture" method="post">
+    <button type="submit">📸 Trigger Capture</button>
+  </form>
+
+  <h2>Available Images</h2>
+  <ul>
+    {% for image in images %}
+      <li><a href="/images/{{ image }}">{{ image }}</a></li>
+    {% endfor %}
+  </ul>
+</body>
+</html>
